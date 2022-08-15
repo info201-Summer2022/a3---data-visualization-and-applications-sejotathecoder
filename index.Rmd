@@ -1,0 +1,100 @@
+---
+title: "A3 - The Inequality Report"
+output: html_document
+date: "2022-08-10"
+---
+
+```{r setup, include=FALSE}
+library(readr)
+library(stringr)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(usmap)
+library(tidyverse)
+library(scales)
+library(plotly)
+library(tidyr)
+```
+
+## An Introduction and summarization
+
+  *In this assignment I am choosing certain variables to analyze that highlight inequalities in imprisonment across the south. Specifically, I am observing the state of Texas to see if I can point out some trends in the criminal justice system, over time and observing over a geographical spectrum. The total jail population rate is the average number of people held in jail throughout the year (until December 31st) divided per 1000 people. This is one of the variables I will be using to graph and render some plots along with many other calculated and non-calculated variables.*
+
+  *Before we dive into plots, charts, and analyzing trends, here is some calculated background information. The first calculated variable (I mutated and wrangled to get) is called blk_inc_perc. This variable shows the percentage of African Americans who are imprisoned. This variable is per county, and was mutated to a few datasets I created in regards to my area of interest, Texas. I calculated a mean value of blk_inc_perc, mean_value_blk_incperc, which represents the percentage of African Americans in the South (I kept it general and covered the whole South for scope purposes) that are incarcerated; that is **3.32%**. Some more calculations I did to summarize my work are as follows:* 
+
+  - The maximum value of African American jail rate = **833,333.3** (This may seem weird since this variable is per 1,000 individuals but the values over 1000 account for important discrepancies: illegal emigrants, individuals from different counties wrongfully put in a different counties system, etc..)
+  
+  - The difference between the total Texas jail population and the African American population, dif_totaljail_to_blkpop in Texas is **50,612,890**.
+  
+  - There are **121** columns (variables) in the original data set 
+  
+  - There are **153,811** rows (counties by state and year 1970-2018) in the original data set.
+  
+## Single Variable Comparison
+
+```{r echo=FALSE}
+data <- read.csv("incarceration_trends.csv")
+southdata <- filter(data, region == "South")
+texdata <- filter(data, state == "TX")
+south_inc_rates <- southdata %>% mutate(black_inc_perc = ((black_jail_pop) / black_pop_15to64) * 100)
+relevant_south_inc_rates <- south_inc_rates[,c(1,2,3,4,5,6,7,11,16,21,29,32,122)]
+relevant_south_inc_rates <- relevant_south_inc_rates %>% filter(black_inc_perc != "Inf" & black_inc_perc >= 0)
+numstates <- unique(relevant_south_inc_rates$state)
+graph_data <- south_inc_rates[,c(2,5,96,100,103)] %>% filter(county_name == "Harris County" |
+                                                               county_name == "Tarrant County" |
+                                                               county_name == "Dallas County")
+graph_data <- na.omit(graph_data)
+tex_county_map <- graph_data %>% ggplot(aes(x = year, y = black_jail_pop_rate, group = county_name, color = county_name)) +
+  ggtitle("TX black incarceration rates") + labs(y= "Rate of African Americans in Jail", x = "Time") + geom_line()
+print(tex_county_map)
+```
+
+This first chart recognizes a single variable, compared over time with three descriptive lines. The variable I am choosing to analyze is the black jail population rate. This rate shows the number per 1,000 African Americans that are in jail in a single calendar year. As you can see, I compared this variable against time and included three Texas counties to measure this regression (Harris, Dallas, and Tarrant). This chart is showing that, with the exception of Tarrant Couny, the African American incarceration rates have risen in these counties over time; let's examine why.
+
+## Texas black incarceration rates
+
+```{r echo=FALSE}
+data <- read.csv("incarceration_trends.csv")
+southdata <- filter(data, region == "South")
+texdata <- filter(data, state == "TX")
+south_inc_rates <- southdata %>% mutate(black_inc_perc = ((black_jail_pop) / black_pop_15to64) * 100)
+relevant_south_inc_rates <- south_inc_rates[,c(1,2,3,4,5,6,7,11,16,21,29,32,122)]
+relevant_south_inc_rates <- relevant_south_inc_rates %>% filter(black_inc_perc != "Inf" & black_inc_perc >= 0)
+numstates <- unique(relevant_south_inc_rates$state)
+graph_data <- south_inc_rates[,c(2,5,96,100,103)] %>% filter(county_name == "Harris County" |
+                                                               county_name == "Tarrant County" |
+                                                               county_name == "Dallas County")
+blkvtotal_data <- na.omit(texdata[,c(2,11,21,96,100)])
+two_var_chart <- ggplot(blkvtotal_data, aes(x = total_jail_pop)) +  
+  geom_line(aes(y = black_pop_15to64)) + ggtitle("black population increasing causes icrease in total jail population") +
+  labs(y= "African American Population (ages 15-64)", x = "Total Jail Population")
+print(two_var_chart)
+```
+
+This comparison chart shows how the total jail population in Texas increases pretty significantly as the population of black people from the ages between 15 and 64 increases as well. The two variables I used to compare were: black_jail_pop (population of African Americans in jail in Texas) and black_pop_15to64 (the population of African Americans between the ages of 15 and 64). There is a positive correlation between the two variables; as more African Americans live in Texas, the Texas jail population increases substantially. Why is this? Well, as my previous graph showed, the three counties with the highest populations in Texas: Dallas, Tarrant, and Harris, also have increasing African American incarceration rates. This means that the rate at which African Americans in Texas are being incarcerated is increasing as time goes on. I am unable to say why this occurrence is taking place just with the data I have, but I hope to help you, the reader, make your own conclusions based on the trends within the information I have shared.
+
+## A Geographic Representation
+
+```{r echo=FALSE}
+data <- read.csv("incarceration_trends.csv")
+tex2018_aajail_map <- filter(texdata, year == 2018)
+minimalist <- theme_bw() + theme(
+  axis.line = element_blank(),        
+  axis.text = element_blank(),        
+  axis.ticks = element_blank(),       
+  axis.title = element_blank(),       
+  plot.background = element_blank(),  
+  panel.grid.major = element_blank(), 
+  panel.grid.minor = element_blank(), 
+  panel.border = element_blank()      
+)
+texmap <- plot_usmap(data = tex2018_aajail_map, values = "black_jail_pop",
+                     regions = "counties", include = c("TX"), color = "gray") + 
+  labs(title = "Texas 2018 African American incarceration population",
+       subtitle = "This is a map showing African American incarceration populations accross Texas counties in 2018 (the black counties filled in are null values)") + 
+  scale_fill_continuous(low = "white", high = "red", name = "number incarcerated", label = scales::comma) + minimalist
+print(texmap)
+```
+
+Above is a map of Texas that shows simply the distribution of African American incarceration populations - per county. The variable used in this map is black_jail_pop and is related to the population of African Americans in jail in a certain county during the year 2018. As you can see, some areas are very light because the distribution starts at 0 and reaches past 4,000 individuals in jail. The counties you see that are shaded a darker red have more African Americans in jail. Finally, the counties that are filled in dark represent those that have zero African Americans in jail or have no data for them (N/A).
